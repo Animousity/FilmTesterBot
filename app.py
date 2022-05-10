@@ -129,19 +129,13 @@ question_list = []
 right_answer = ''
 
 
-def close_keyboard(update, context):
-    update.message.reply_text(
-        "Ok",
-        reply_markup=ReplyKeyboardRemove()
-    )
-
-
 def start(update, context):
     first_name = update.message.from_user.first_name
     update.message.reply_text(
         f"Добро пожаловать, {first_name}!\nЯ - FilmTesterBot - бот, при помощи которого вы можете проходить тесты на знание фильмов.\nВыберите фильм, чтобы начать.\nЧтобы узнать больше, вы можете прописать команду /help.",
         reply_markup=markup
     )
+
     return 1
 
 
@@ -177,7 +171,16 @@ def first_response(update, context):
     global selected_film
     global selected_difficulty_level
 
-    selected_film = update.message.text
+    film_names = []
+
+    for film in session.query(Film):
+        film_names.append(film.name)
+
+    if update.message.text in film_names:
+        selected_film = update.message.text
+    else:
+        update.message.reply_text('Я вас не понимаю, выберите один из предложенных фильмов')
+        return 100
     response_keyboard_to_select_difficulty = [['Легкий'], ['Средний'], ['Трудный']]
     markup_for_level_selection = ReplyKeyboardMarkup(response_keyboard_to_select_difficulty, one_time_keyboard=True)
     update.message.reply_text(
@@ -193,13 +196,21 @@ def second_response(update, context):
     selected_difficulty_level = update.message.text
 
     film = session.query(Film).filter(Film.name == selected_film)
+
+    return 3
+
+
+def third_response(update, context):
     response_keyboard_to_questions_continue = [['Перейти к вопросам']]
     markup_for_questions_continue = ReplyKeyboardMarkup(response_keyboard_to_questions_continue, one_time_keyboard=True)
 
-    update.message.reply_text(
-        f"Фильм: {selected_film}\nСложность: {selected_difficulty_level}", reply_markup=markup_for_questions_continue)
-
-    return 3
+    if update.message.text == 'Перейти к вопросам':
+        update.message.reply_text(
+            f"Фильм: {selected_film}\nСложность: {selected_difficulty_level}", reply_markup=markup_for_questions_continue)
+        return 4
+    else:
+        update.message.reply_text('Извините, я вас не понимаю')
+        return 300
 
 
 def first_question(update, context):
@@ -224,7 +235,7 @@ def first_question(update, context):
     right_answer = question_list[question_number][2]
 
     del question_list[question_number]
-    return 4
+    return 5
 
 
 def second_question(update, context):
@@ -252,7 +263,7 @@ def second_question(update, context):
     right_answer = question_list[question_number][2]
 
     del question_list[question_number]
-    return 5
+    return 6
 
 
 def third_question(update, context):
@@ -280,7 +291,7 @@ def third_question(update, context):
     right_answer = question_list[question_number][2]
 
     del question_list[question_number]
-    return 6
+    return 7
 
 
 def fourth_question(update, context):
@@ -309,7 +320,7 @@ def fourth_question(update, context):
     right_answer = question_list[question_number][2]
 
     del question_list[question_number]
-    return 7
+    return 8
 
 
 def fifth_question(update, context):
@@ -337,7 +348,7 @@ def fifth_question(update, context):
     right_answer = question_list[question_number][2]
 
     del question_list[question_number]
-    return 8
+    return 9
 
 
 def sixth_question(update, context):
@@ -366,7 +377,7 @@ def sixth_question(update, context):
     right_answer = question_list[question_number][2]
 
     del question_list[question_number]
-    return 9
+    return 10
 
 
 def seventh_question(update, context):
@@ -394,7 +405,7 @@ def seventh_question(update, context):
     right_answer = question_list[question_number][2]
 
     del question_list[question_number]
-    return 10
+    return 11
 
 
 def eighth_question(update, context):
@@ -422,7 +433,7 @@ def eighth_question(update, context):
     right_answer = question_list[question_number][2]
 
     del question_list[question_number]
-    return 11
+    return 12
 
 
 def ninth_question(update, context):
@@ -450,7 +461,7 @@ def ninth_question(update, context):
     right_answer = question_list[question_number][2]
 
     del question_list[question_number]
-    return 12
+    return 13
 
 
 def tenth_question(update, context):
@@ -480,7 +491,7 @@ def tenth_question(update, context):
     del question_list[question_number]
 
     context.user_data.clear()
-    return 13
+    return 14
 
 
 def ending(update, context):
@@ -496,7 +507,7 @@ def ending(update, context):
 
     if points_scored == 0 or points_scored >= 5:
         points_word = 'баллов'
-    elif points_scored == 1:
+    elif points_scored == 1 :
         points_word = 'балл'
     elif 2 <= points_scored <= 4:
         points_word = 'балла'
@@ -534,28 +545,36 @@ def main():
             1: [MessageHandler(Filters.text & ~Filters.command, first_response, pass_user_data=True)],
             # Функция читает ответ на второй вопрос и завершает диалог.
             2: [MessageHandler(Filters.text & ~Filters.command, second_response, pass_user_data=True)],
+            # Функция читает ответ на первый вопрос и задаёт второй.
+            3: [MessageHandler(Filters.text & ~Filters.command, third_response, pass_user_data=True)],
             # Функция читает ответ на второй вопрос и завершает диалог.
-            3: [MessageHandler(Filters.text & ~Filters.command, first_question, pass_user_data=True)],
+            4: [MessageHandler(Filters.text & ~Filters.command, first_question, pass_user_data=True)],
             # Функция читает ответ на первый вопрос и задаёт второй.
-            4: [MessageHandler(Filters.text & ~Filters.command, second_question, pass_user_data=True)],
+            5: [MessageHandler(Filters.text & ~Filters.command, second_question, pass_user_data=True)],
             # Функция читает ответ на второй вопрос и завершает диалог.
-            5: [MessageHandler(Filters.text & ~Filters.command, third_question, pass_user_data=True)],
+            6: [MessageHandler(Filters.text & ~Filters.command, third_question, pass_user_data=True)],
             # Функция читает ответ на первый вопрос и задаёт второй.
-            6: [MessageHandler(Filters.text & ~Filters.command, fourth_question, pass_user_data=True)],
+            7: [MessageHandler(Filters.text & ~Filters.command, fourth_question, pass_user_data=True)],
             # Функция читает ответ на второй вопрос и завершает диалог.
-            7: [MessageHandler(Filters.text & ~Filters.command, fifth_question, pass_user_data=True)],
+            8: [MessageHandler(Filters.text & ~Filters.command, fifth_question, pass_user_data=True)],
             # Функция читает ответ на первый вопрос и задаёт второй.
-            8: [MessageHandler(Filters.text & ~Filters.command, sixth_question, pass_user_data=True)],
+            9: [MessageHandler(Filters.text & ~Filters.command, sixth_question, pass_user_data=True)],
             # Функция читает ответ на второй вопрос и завершает диалог.
-            9: [MessageHandler(Filters.text & ~Filters.command, seventh_question, pass_user_data=True)],
+            10: [MessageHandler(Filters.text & ~Filters.command, seventh_question, pass_user_data=True)],
             # Функция читает ответ на первый вопрос и задаёт второй.
-            10: [MessageHandler(Filters.text & ~Filters.command, eighth_question, pass_user_data=True)],
+            11: [MessageHandler(Filters.text & ~Filters.command, eighth_question, pass_user_data=True)],
             # Функция читает ответ на второй вопрос и завершает диалог.
-            11: [MessageHandler(Filters.text & ~Filters.command, ninth_question, pass_user_data=True)],
+            12: [MessageHandler(Filters.text & ~Filters.command, ninth_question, pass_user_data=True)],
             # Функция читает ответ на первый вопрос и задаёт второй.
-            12: [MessageHandler(Filters.text & ~Filters.command, tenth_question, pass_user_data=True)],
+            13: [MessageHandler(Filters.text & ~Filters.command, tenth_question, pass_user_data=True)],
             # Функция читает ответ на первый вопрос и задаёт второй.
-            13: [MessageHandler(Filters.text & ~Filters.command, ending, pass_user_data=True)]
+            14: [MessageHandler(Filters.text & ~Filters.command, ending, pass_user_data=True)],
+            # Функция читает ответ на первый вопрос и задаёт второй.
+            100: [MessageHandler(Filters.text & ~Filters.command, first_response, pass_user_data=True)],
+            # Функция читает ответ на первый вопрос и задаёт второй.
+            200: [MessageHandler(Filters.text & ~Filters.command, second_response, pass_user_data=True)],
+            # Функция читает ответ на первый вопрос и задаёт второй.
+            300: [MessageHandler(Filters.text & ~Filters.command, third_response, pass_user_data=True)]
         },
 
         # Точка прерывания диалога. В данном случае — команда /stop.
